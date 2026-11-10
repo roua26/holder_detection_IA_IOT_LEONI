@@ -1,0 +1,200 @@
+<html style="width: 100%;">
+<div class="container">
+  <!-- HEADER -->
+  <div class="header">
+    <h1 style="font-size: 50px;">Leoni <span style="font-size: 30px;"> Holder Detection</span></h1>
+    <div class="header-status">
+      <span class="status-dot" [class.online]="systemStatus === 'ACTIVE'" [class.offline]="systemStatus !== 'ACTIVE'">
+      </span>
+
+      <span>{{ systemStatus }}</span>
+    </div>
+    <div class="system-panel">
+
+      <p>ESP32-CAM :
+        <span [style.color]="esp32cam ? 'green' : 'red'">
+          {{ esp32cam ? 'Connecté' : 'Déconnecté' }}
+        </span>
+      </p>
+
+      <p>ESP32 :
+        <span [style.color]="esp32 ? 'green' : 'red'">
+          {{ esp32 ? 'Connecté' : 'Déconnecté' }}
+        </span>
+      </p>
+
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="btn-primary" (click)="tester()" [disabled]="loading|| !isSystemReady()">
+      <span></span> {{ loading ? 'Analyse...' : 'Analyser' }}
+    </button>
+    <button class="btn-success" (click)="ouvrirTous()" [disabled]="!isSystemReady()">
+      <span></span> Ouvrir Tous
+    </button>
+    <button class="btn-danger" (click)="fermerTous()" [disabled]="!isSystemReady()">
+      <span></span> Fermer Tous
+    </button>
+    <button class="btn-warning" (click)="resetAll() ">
+      <span></span> Réinitialiser
+    </button>
+  </div>
+
+  <!-- CONTROLE CABLE -->
+  <div class="sidebar-header quality-header">
+    <h3>Contrôle Câble</h3>
+    <span class="count-badge">{{ cables.length }}</span>
+  </div>
+
+  <div *ngIf="cables.length === 0 && !loading" class="no-holders">
+    <p>Aucun contrôle câble</p>
+  </div>
+
+
+  <div *ngFor="let cable of cables" class="holder-card" [class.closed]="cable.status === 'OK'"
+    [class.open]="cable.status === 'NOK'">
+
+    <div class="holder-card-header">
+
+      <span class="holder-id">
+        Présence du câble
+      </span>
+
+      <span class="holder-status" [class.closed]="cable.status === 'OK'" [class.open]="cable.status === 'NOK'">
+
+        {{ cable.status }}
+
+      </span>
+
+    </div>
+
+    <div class="holder-card-body">
+
+      <span>Confiance</span>
+
+      <span class="holder-confidence">
+
+        {{ cable.confidence }} %
+
+        <span class="confidence-bar">
+
+          <span class="fill" [style.width]="cable.confidence + '%'">
+
+          </span>
+
+        </span>
+
+      </span>
+
+    </div>
+
+  </div>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <span class="loading-text">Analyse en cours...</span>
+  </div>
+
+  <!-- MESSAGE -->
+  <div *ngIf="message && !loading" class="message" [class.success]="!message.includes('Erreur')"
+    [class.error]="message.includes('Erreur')">
+    {{ message }}
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-layout">
+    <!-- LEFT: IMAGE -->
+    <div class="image-container-wrapper">
+                 <!-- STATS -->
+        <div *ngIf="holders.length > 0" class="stats-bar">
+          <div class="stat-item">
+            <div class="stat-icon total">📊</div>
+            <div class="stat-info">
+              <span class="stat-label">Total</span>
+              <span class="stat-value">{{ holders.length }}</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon open">🔴</div>
+            <div class="stat-info">
+              <span class="stat-label">NOK</span>
+              <span class="stat-value">{{ getOpenCount() }}</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon closed">🟢</div>
+            <div class="stat-info">
+              <span class="stat-label">OK</span>
+              <span class="stat-value">{{ getClosedCount() }}</span>
+            </div>
+          </div>
+        </div>
+      <div *ngIf="!imageUrl && !loading" class="placeholder">
+        <div class="placeholder-icon">📷</div>
+        <h3>Aucune image chargée</h3>
+        <p>Cliquez sur "Analyser" pour détecter les holders</p>
+      </div>
+
+
+      <div class="image-container">
+        <img #img [src]="imageUrl" (load)="drawBoxes()" crossorigin="anonymous">
+        <canvas #canvas class="overlay"></canvas>
+      </div>
+    </div>
+
+    <!-- RIGHT: HOLDERS SIDEBAR -->
+    <div class="holders-sidebar">
+      <div class="sidebar-header">
+        <h3>Holders</h3>
+        <span class="count-badge">{{ holders.length }}</span>
+      </div>
+
+      <div *ngIf="holders.length === 0 && !loading" class="no-holders">
+        <div class="no-holders-icon"></div>
+        <p>Aucun holder détecté<br><small>Lancez une analyse</small></p>
+      </div>
+
+      <div *ngFor="let holder of holders" class="holder-card" [class.open]="holder.status === 'OK'"
+        [class.closed]="holder.status === 'NOK'">
+
+        <div class="holder-card-header">
+          <span class="holder-id">Holder #{{ holder.id }}</span>
+          <span class="holder-status" [class.open]="holder.status === 'NOK'"
+            [class.closed]="holder.status === 'OK'">
+            {{ holder.status }}
+          </span>
+        </div>
+
+        <div class="holder-card-body">
+          <span>Confiance</span>
+          <span class="holder-confidence">
+            {{ holder.confidence }}%
+            <span class="confidence-bar">
+              <span class="fill" [style.width]="holder.confidence + '%'"
+                [style.background]="holder.confidence > 70 ? '#22c55e' : holder.confidence > 40 ? '#f59e0b' : '#ef4444'">
+              </span>
+            </span>
+          </span>
+        </div>
+
+        <div class="holder-card-actions">
+          <button *ngIf="holder.status === 'NOK'" class="btn-close" (click)="fermerHolder(holder.id)">
+            ✕ Fermer
+          </button>
+          <button *ngIf="holder.status === 'OK'" class="btn-open" (click)="ouvrirHolder(holder.id)">
+            ✓ Ouvrir
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+ 
+  </div>
+</div>
+
+
+</html>

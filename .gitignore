@@ -1,0 +1,30 @@
+# Python
+AI/.venv/
+**/.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Dataset
+dataset/
+
+# Node.js
+node_modules/
+**/node_modules/
+
+# Angular
+.angular/
+**/.angular/
+dist/
+coverage/
+
+# PlatformIO
+.pio/
+
+# Images temporaires
+uploads/
+
+# Fichiers sensibles
+.env
+.env.*
+!.env.example

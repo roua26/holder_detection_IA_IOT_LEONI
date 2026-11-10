@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"name": "holder_detection",
+			"path": "../holder_detection"
+		},
+		{
+			"name": "ServoMoteur",
+			"path": "."
+		}
+	],
+	"settings": {}
+}
